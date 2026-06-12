@@ -18,4 +18,19 @@ model User {
   passwordHash String
   name      String
   createdAt DateTime @default(now())
+  profile    UserProfile?
+}
+
+model UserProfile {
+  id            String  @id @default(uuid())
+  userId        String  @unique
+  user          User    @relation(fields: [userId], references: [id])
+  heightCm      Float?
+  weightKg      Float?
+  age           Int?
+  gender        String?
+  targetCalories Int?
+  targetProteinG Int?
+  targetSleepHrs Float?
+  targetWaterMl  Int?
 }
