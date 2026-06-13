@@ -12,31 +12,63 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHTLY_ACTIVE
+  MODERATELY_ACTIVE
+  VERY_ACTIVE
+}
+
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
+  id           String   @id @default(uuid())
+  email        String   @unique
   passwordHash String
   name         String
-  createdAt    DateTime      @default(now())
+  createdAt    DateTime @default(now())
+
   profile      UserProfile?
   mealLogs     MealLog[]
   sleepLogs    SleepLog[]
   waterLogs    WaterLog[]
   activityLogs ActivityLog[]
+  medicines    Medicine[]
+  medicineLogs MedicineLog[]
+
+  updatedAt DateTime @updatedAt
 }
 
 model UserProfile {
-  id             String  @id @default(uuid())
-  userId         String  @unique
-  user           User    @relation(fields: [userId], references: [id])
-  heightCm       Float?
-  weightKg       Float?
-  age            Int?
-  gender         String?
-  targetCalories Int?
-  targetProteinG Int?
-  targetSleepHrs Float?
-  targetWaterMl  Int?
+  id String @id @default(uuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Physical Info
+  heightCm Float?
+  weightKg Float?
+  age      Int?
+  gender   Gender?
+
+  // Health Info
+  conditions String[] @default([])
+  allergies  String[] @default([])
+
+  // Goals
+  targetCalories Int?   @default(2000)
+  targetProteinG Int?   @default(50)
+  targetSleepHrs Float? @default(8)
+  targetWaterMl  Int?   @default(2000)
+
+  activityLevel ActivityLevel?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model MealLog {
@@ -84,4 +116,55 @@ model ActivityLog {
   durationMins   Int
   caloriesBurned Float?
   notes          String?
+}
+
+ enum MedicineStatus {
+  pending
+  taken
+  missed
+}
+
+model Medicine {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name      String
+  dose      String
+  frequency String
+  times     String[]
+
+  startDate DateTime
+  endDate   DateTime?
+
+  notes String?
+
+  logs MedicineLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model MedicineLog {
+  id         String   @id @default(uuid())
+  medicineId String
+  medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  scheduledAt DateTime
+  takenAt     DateTime?
+
+status MedicineStatus @default(pending)
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([medicineId, scheduledAt])
+  @@index([userId, status])
 }

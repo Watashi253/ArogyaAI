@@ -6,6 +6,7 @@ import nutritionRoutes from './routes/nutrition.routes.js'
 import sleepRoutes from './routes/sleep.routes.js'
 import waterRoutes from './routes/water.routes.js'
 import activityRoutes from './routes/activity.routes.js'
+import medicineRoutes from './routes/medicine.routes.js'
 
 const app = express()
 app.use(cors())
@@ -17,6 +18,7 @@ app.use('/api/nutrition', nutritionRoutes)
 app.use('/api/sleep', sleepRoutes)
 app.use('/api/water', waterRoutes)
 app.use('/api/activity', activityRoutes)
+app.use('/api/medicines', medicineRoutes)
 
 app.get('/health', (req, res) => {
   res.json({ message: 'Server is running' })
