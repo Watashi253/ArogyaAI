@@ -9,27 +9,30 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
+  id           String        @id @default(uuid())
+  email        String        @unique
   passwordHash String
-  name      String
-  createdAt DateTime @default(now())
-  profile    UserProfile?
-  mealLogs  MealLog[]
+  name         String
+  createdAt    DateTime      @default(now())
+  profile      UserProfile?
+  mealLogs     MealLog[]
+  sleepLogs    SleepLog[]
+  waterLogs    WaterLog[]
+  activityLogs ActivityLog[]
 }
 
 model UserProfile {
-  id            String  @id @default(uuid())
-  userId        String  @unique
-  user          User    @relation(fields: [userId], references: [id])
-  heightCm      Float?
-  weightKg      Float?
-  age           Int?
-  gender        String?
+  id             String  @id @default(uuid())
+  userId         String  @unique
+  user           User    @relation(fields: [userId], references: [id])
+  heightCm       Float?
+  weightKg       Float?
+  age            Int?
+  gender         String?
   targetCalories Int?
   targetProteinG Int?
   targetSleepHrs Float?
@@ -41,13 +44,44 @@ model MealLog {
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   date      DateTime
-  mealType  String   // 'breakfast', 'lunch', 'dinner', 'snack'
+  mealType  String // 'breakfast', 'lunch', 'dinner', 'snack'
   foodName  String
   calories  Float
   proteinG  Float
   fatG      Float
   carbsG    Float
   fiberG    Float?
-  source    String   // 'manual' or 'ai_scan'
+  source    String // 'manual' or 'ai_scan'
   createdAt DateTime @default(now())
+}
+
+model SleepLog {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  date          DateTime
+  bedtime       DateTime
+  wakeTime      DateTime
+  hours         Float
+  qualityRating Int?
+}
+
+model WaterLog {
+  id       String   @id @default(uuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id])
+  date     DateTime
+  amountMl Int
+  loggedAt DateTime @default(now())
+}
+
+model ActivityLog {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  date           DateTime
+  type           String
+  durationMins   Int
+  caloriesBurned Float?
+  notes          String?
 }

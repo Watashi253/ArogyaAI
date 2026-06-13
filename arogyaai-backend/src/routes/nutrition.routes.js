@@ -7,7 +7,7 @@ const router = express.Router()
 // Log a meal
 router.post('/log', authenticate, async (req, res) => {
   try {
-    const { date, mealType, foodName, calories, proteinG, fatG, carbsG } = req.body
+    const { date, mealType, foodName, calories, proteinG, fatG, carbsG, fiberG } = req.body
     
     const meal = await prisma.mealLog.create({
       data: {
@@ -19,6 +19,7 @@ router.post('/log', authenticate, async (req, res) => {
         proteinG,
         fatG,
         carbsG,
+        fiberG,
         source: 'manual'
       }
     })
