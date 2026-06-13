@@ -39,6 +39,8 @@ model User {
   activityLogs ActivityLog[]
   medicines    Medicine[]
   medicineLogs MedicineLog[]
+  records      HealthRecord[]
+  labValues    LabValue[]
 
   updatedAt DateTime @updatedAt
 }
@@ -72,18 +74,26 @@ model UserProfile {
 }
 
 model MealLog {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  date      DateTime
-  mealType  String // 'breakfast', 'lunch', 'dinner', 'snack'
-  foodName  String
-  calories  Float
-  proteinG  Float
-  fatG      Float
-  carbsG    Float
-  fiberG    Float?
+  id       String   @id @default(uuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id])
+  date     DateTime
+  mealType String // 'breakfast', 'lunch', 'dinner', 'snack'
+  foodName String
+  calories Float
+  proteinG Float
+  fatG     Float
+  carbsG   Float
+  fiberG   Float?
+
+  imageUrl String? // Cloudinary secure URL
+
+  // AI confidence level
+  confidence String? // "low", "medium", "high"
+
   source    String // 'manual' or 'ai_scan'
+   notes      String? 
+   
   createdAt DateTime @default(now())
 }
 
@@ -118,7 +128,7 @@ model ActivityLog {
   notes          String?
 }
 
- enum MedicineStatus {
+enum MedicineStatus {
   pending
   taken
   missed
@@ -158,7 +168,7 @@ model MedicineLog {
   scheduledAt DateTime
   takenAt     DateTime?
 
-status MedicineStatus @default(pending)
+  status MedicineStatus @default(pending)
 
   notes String?
 
@@ -167,4 +177,51 @@ status MedicineStatus @default(pending)
 
   @@index([medicineId, scheduledAt])
   @@index([userId, status])
+}
+
+model HealthRecord {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title    String // Name of the document
+  type     String // 'blood_report' | 'prescription' | 'scan' | 'other'
+  fileUrl  String // URL to the file in cloud storage
+  fileName String? // Original filename
+  mimeType String? // File MIME type
+
+  notes String?
+
+  uploadedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relation to extracted lab values
+  labValues LabValue[]
+
+  @@index([userId, uploadedAt])
+}
+
+model LabValue {
+  id       String       @id @default(uuid())
+  recordId String
+  record   HealthRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  parameter      String // Test name (e.g., 'hemoglobin', 'vitamin_d', 'glucose', 'cholesterol')
+  value          Float // Measured value
+  unit           String // Unit of measurement (e.g., 'g/dL', 'ng/mL')
+  referenceRange String? // Reference range (e.g., '12-16')
+
+  testDate DateTime // When the test was done
+
+  isAbnormal Boolean @default(false) // Flag if outside normal range
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, parameter])
+  @@index([recordId])
+  @@index([testDate])
 }
