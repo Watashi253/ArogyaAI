@@ -19,6 +19,7 @@ model User {
   name      String
   createdAt DateTime @default(now())
   profile    UserProfile?
+  mealLogs  MealLog[]
 }
 
 model UserProfile {
@@ -33,4 +34,20 @@ model UserProfile {
   targetProteinG Int?
   targetSleepHrs Float?
   targetWaterMl  Int?
+}
+
+model MealLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  date      DateTime
+  mealType  String   // 'breakfast', 'lunch', 'dinner', 'snack'
+  foodName  String
+  calories  Float
+  proteinG  Float
+  fatG      Float
+  carbsG    Float
+  fiberG    Float?
+  source    String   // 'manual' or 'ai_scan'
+  createdAt DateTime @default(now())
 }
