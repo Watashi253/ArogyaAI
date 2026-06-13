@@ -13,12 +13,25 @@ export const getModel = (modelName = PRIMARY_MODEL) => {
 
 export const parseJsonResponse = (responseText) => {
   try {
-    const cleaned = responseText
-      .replace(/```json|```/g, '')
-      .trim()
+    let cleaned = responseText.trim()
 
+    // Remove markdown code blocks
+    cleaned = cleaned.replace(/```json\s*/g, '').replace(/\s*```$/g, '')
+    
+    // Extract JSON object if mixed with text
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}(?=\s*$)/);
+    if (jsonMatch) {
+      cleaned = jsonMatch[0]
+    }
+
+    // Remove trailing commas (invalid JSON)
+    cleaned = cleaned.replace(/,\s*([}\]])/g, '$1')
+    
+    cleaned = cleaned.trim()
+    
     return JSON.parse(cleaned)
   } catch (error) {
+    console.error('Parse error - response text:', responseText.substring(0, 500))
     throw new Error(`Failed to parse AI response: ${error.message}`)
   }
 }
