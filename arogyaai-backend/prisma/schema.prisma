@@ -85,6 +85,7 @@ model MealLog {
   fatG     Float
   carbsG   Float
   fiberG   Float?
+  sugarG   Float?
 
   imageUrl String? // Cloudinary secure URL
 

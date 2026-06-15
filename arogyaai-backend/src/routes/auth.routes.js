@@ -25,7 +25,7 @@ router.post('/signup', async (req, res) => {
 
     res.cookie('accessToken', tokens.accessToken, {
       ...cookieOptions,
-      maxAge: 30 * 60 * 1000 // 30 min
+      maxAge: 1000 * 60 * 60 // 1 hour
     })
 
     res.cookie('refreshToken', tokens.refreshToken, {
@@ -55,7 +55,7 @@ router.post('/login', async (req, res) => {
 
     res.cookie('accessToken', tokens.accessToken, {
       ...cookieOptions,
-      maxAge: 30 * 60 * 1000 // 30 min
+      maxAge: 1000 * 60 * 60 // 1 hour
     })
 
     res.cookie('refreshToken', tokens.refreshToken, {
@@ -101,7 +101,7 @@ router.post('/refresh', async (req, res) => {
     res.cookie(
       'accessToken', tokens.accessToken, {
         ...cookieOptions,
-        maxAge: 30 * 60 * 1000
+        maxAge: 1000 * 60 * 60 // 1 hour
       }
     )
   
@@ -113,6 +113,36 @@ router.post('/refresh', async (req, res) => {
     res.status(401).json({
       error: error.message
     })
+  }
+})
+
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' })
+    }
+
+    const result = await authService.requestPasswordReset(email)
+    res.json(result)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body
+
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Token and password are required' })
+    }
+
+    const result = await authService.resetPassword(token, password)
+    res.json(result)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
   }
 })
 

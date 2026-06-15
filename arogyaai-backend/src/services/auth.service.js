@@ -53,7 +53,7 @@ function generateTokens(userId) {
     { userId },
     process.env.JWT_SECRET,
     {
-      expiresIn: '30m'
+      expiresIn: '1h'
     }
   )
 
@@ -94,7 +94,7 @@ export async function refreshAccessToken(
       { userId: user.id },
       process.env.JWT_SECRET,
       {
-        expiresIn: '30m'
+        expiresIn: '1h'
       }
     )
 
@@ -102,4 +102,65 @@ export async function refreshAccessToken(
   } catch {
     throw new Error('Invalid refresh token')
   }
+}
+
+export async function requestPasswordReset(email) {
+  const user = await prisma.user.findUnique({
+    where: { email }
+  })
+
+  if (!user) {
+    return { message: 'If that email exists, a reset link has been sent.' }
+  }
+
+  const resetToken = jwt.sign(
+    { userId: user.id, purpose: 'password_reset' },
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  )
+
+  const payload = {
+    message: 'If that email exists, a reset link has been sent.'
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    payload.resetToken = resetToken
+    payload.resetUrl = `http://localhost:5173/reset-password?token=${resetToken}`
+  }
+
+  return payload
+}
+
+export async function resetPassword(token, newPassword) {
+  if (!newPassword || newPassword.length < 6) {
+    throw new Error('Password must be at least 6 characters')
+  }
+
+  let payload
+  try {
+    payload = jwt.verify(token, process.env.JWT_SECRET)
+  } catch {
+    throw new Error('Invalid or expired reset link')
+  }
+
+  if (payload.purpose !== 'password_reset') {
+    throw new Error('Invalid reset token')
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId }
+  })
+
+  if (!user) {
+    throw new Error('User not found')
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 12)
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash }
+  })
+
+  return { message: 'Password reset successful' }
 }
