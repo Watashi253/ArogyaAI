@@ -175,6 +175,52 @@ router.get('/logs/week', authenticate, async (req, res) => {
   }
 })
 
+// Get monthly water intake summary
+router.get('/logs/month', authenticate, async (req, res) => {
+  try {
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const waterLogs = await prisma.waterLog.findMany({
+      where: {
+        userId: req.userId,
+        date: { gte: thirtyDaysAgo },
+      },
+      orderBy: { date: 'asc' },
+    })
+
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId: req.userId },
+    })
+
+    const targetWater = profile?.targetWaterMl || 2000
+    const totalWater = waterLogs.reduce((sum, log) => sum + log.amountMl, 0)
+
+    const groupedByDay = {}
+    waterLogs.forEach((log) => {
+      const dayKey = log.date.toISOString().split('T')[0]
+      groupedByDay[dayKey] = (groupedByDay[dayKey] || 0) + log.amountMl
+    })
+
+    res.json({
+      logs: waterLogs,
+      groupedByDay,
+      summary: {
+        totalMl: totalWater,
+        averageDailyMl: Object.keys(groupedByDay).length
+          ? Math.round(totalWater / Object.keys(groupedByDay).length)
+          : 0,
+        targetMl: targetWater,
+        daysLogged: Object.keys(groupedByDay).length,
+        daysInMonth: 30,
+        complianceDays: Object.values(groupedByDay).filter((amount) => amount >= targetWater).length,
+      },
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Update a water log
 router.put('/:id', authenticate, async (req, res) => {
   try {

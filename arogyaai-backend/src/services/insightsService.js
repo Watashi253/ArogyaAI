@@ -60,7 +60,21 @@ export async function getWeeklyInsights(userId) {
   try {
     const data = await fetchWeeklyData(userId)
     const stats = calculateHealthStats(data, data.profile)
-    const insights = await generateWeeklyInsights(stats)
+    let insights
+
+try {
+  insights = await generateWeeklyInsights(stats)
+} catch (err) {
+  console.error(err)
+
+  insights = {
+    insights: [
+      "Health insights are temporarily unavailable.",
+      "Continue logging meals and activities regularly.",
+      "Maintain adequate hydration and sleep."
+    ]
+  }
+}
     
     return {
       period: 'weekly',
@@ -86,11 +100,16 @@ export async function getDoctorSummary(userId) {
     const summaryData = formatSummaryData(profile, user, metrics, medicines, labValues)
     const result = await generateDoctorSummary(summaryData)
     
-    return {
-      ...result,
-      userId,
-      period: 'monthly'
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error("Gemini API key missing");
     }
+
+    return {
+  ...result,
+  userId,
+  period: 'monthly',
+  generatedAt: new Date().toISOString()
+}
   } catch (error) {
     console.error('Error generating doctor summary:', error)
     throw new Error(`Failed to generate doctor summary: ${error.message}`)

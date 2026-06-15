@@ -19,7 +19,9 @@ router.get("/me", authenticate, async (req, res) => {
       },
     });
 
-    res.status(200).json(user);
+    const { passwordHash, ...safeUser } = user
+
+    res.status(200).json(safeUser)
   } catch (error) {
     res.status(500).json({
       error: error.message,

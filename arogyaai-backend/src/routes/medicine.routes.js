@@ -136,6 +136,76 @@ router.get('/today', authenticate, async (req, res) => {
   }
 })
 
+// Medicine log history and adherence analytics
+router.get('/history', authenticate, async (req, res) => {
+  try {
+    const days = Math.min(parseInt(req.query.days, 10) || 30, 90)
+    const since = new Date()
+    since.setDate(since.getDate() - days)
+    since.setHours(0, 0, 0, 0)
+
+    const [logs, medicines] = await Promise.all([
+      prisma.medicineLog.findMany({
+        where: {
+          userId: req.userId,
+          scheduledAt: { gte: since },
+        },
+        include: { medicine: { select: { name: true, dose: true, frequency: true, times: true } } },
+        orderBy: { scheduledAt: 'desc' },
+      }),
+      prisma.medicine.findMany({
+        where: { userId: req.userId },
+      }),
+    ])
+
+    const taken = logs.filter((l) => l.status === 'taken').length
+    const missed = logs.filter((l) => l.status === 'missed').length
+    const pending = logs.filter((l) => l.status === 'pending').length
+
+    const now = new Date()
+    const activeMeds = medicines.filter(
+      (m) => m.startDate <= now && (!m.endDate || new Date(m.endDate) >= now)
+    )
+
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    const todayEnd = new Date()
+    todayEnd.setHours(23, 59, 59, 999)
+
+    const todayLogs = logs.filter(
+      (l) => l.scheduledAt >= todayStart && l.scheduledAt <= todayEnd
+    )
+    const missedToday = activeMeds.filter(
+      (med) => !todayLogs.some((l) => l.medicineId === med.id && l.status === 'taken')
+    )
+
+    const adherenceRate =
+      taken + missed > 0 ? Math.round((taken / (taken + missed + pending)) * 100) : 0
+
+    res.json({
+      logs,
+      missedToday: missedToday.map((m) => ({
+        id: m.id,
+        name: m.name,
+        dose: m.dose,
+        frequency: m.frequency,
+        times: m.times,
+      })),
+      summary: {
+        taken,
+        missed,
+        pending,
+        adherenceRate,
+        missedTodayCount: missedToday.length,
+        activeMedicines: activeMeds.length,
+        periodDays: days,
+      },
+    })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Update medicine
 router.put('/:id', authenticate, async (req, res) => {
   try {
